@@ -3,27 +3,24 @@
   import { locales, localizeHref, setLocale, getLocale } from '$lib/paraglide/runtime';
   import './layout.css';
   import favicon from '$lib/assets/favicon.svg';
-  import Button from '$lib/components/ui/button/button.svelte';
-  import * as Sheet from '$lib/components/ui/sheet';
+  import '@fontsource-variable/space-grotesk';
   import * as Select from '$lib/components/ui/select';
-  import Separator from '$lib/components/ui/separator/separator.svelte';
-  import { buttonVariants } from '$lib/components/ui/button/button.svelte';
-  import { Menu, Globe } from '@lucide/svelte';
+  import { Globe } from '@lucide/svelte';
   import { m } from "$lib/paraglide/messages"
+  import { ModeWatcher } from 'mode-watcher';
+  import NavUserIcon from '$lib/components/NavUserIcon.svelte';
 
   let { children } = $props();
-
-  // Mobile menu state
-  let mobileMenuOpen = $state(false);
 
   // Navigation links – update as routes are created
   const navLinks = [
     { href: '/', label: m.nav_home() },
-    { href: '/calendar', label: m.nav_calendar() },
+    { href: '/workshops', label: m.nav_workshops() },
     // { href: '/todo', label: m.nav_todo() },
     { href: '/settings', label: m.nav_settings() }
  // add admin later if needed: { href: '/admin', label: 'Admin' }
   ];
+
 
     const params = page.url.searchParams;
     // @ts-ignore
@@ -37,9 +34,9 @@
 
 <svelte:head>
   <link rel="icon" href={favicon} />
-  <title>VSS Time Management</title>
+  <title>fojo</title>
 </svelte:head>
-
+<ModeWatcher/>
 <div class="min-h-screen flex flex-col">
   <!-- Header -->
   <header class="border-b">
@@ -65,45 +62,7 @@
       <div class="flex items-center space-x-2">
 
         <!-- Mobile menu button -->
-        <Sheet.Root>
-          <Sheet.Trigger class={buttonVariants({variant: "ghost"})}>
-              <Menu class="h-5 w-5"/>
-          </Sheet.Trigger>
-          <Sheet.Content side="left" class="px-4 pt-4">
-            <h1 class="font-bold text-lg">Menu</h1>
-            <nav class="flex flex-col space-y-4 mt-4">
-              {#each navLinks as link}
-                <a
-                  href={localizeHref(link.href, { locale: getLocale() })}
-                  onclick={() => mobileMenuOpen = false}
-                  class="text-normal"
-                >
-                  {link.label}
-                </a>
-              {/each}
-            </nav>
-            <Separator class="my-4" />
-            <div class="space-y-2">
-              <p class="text-sm font-medium">{m.language()}</p>
-              <Select.Root
-                  type="single"
-                value={getLocale()}
-                onValueChange={(value) => { setLocale(value); const url = new URL(window.location.href); url.searchParams.set('locale', value); window.location.href = url.toString();}}
-              >
-                  <Select.Trigger>
-                      <Globe /> {langMap[getLocale()]}
-                  </Select.Trigger>
-                  <Select.Content>
-                {#each locales as locale}
-                  <Select.Item value={locale} label={langMap[locale]}>
-                    {langMap[locale]}
-                  </Select.Item>
-                {/each}
-                  </Select.Content>
-              </Select.Root>
-            </div>
-          </Sheet.Content>
-        </Sheet.Root>
+        <NavUserIcon />
       </div>
     </div>
   </header>
@@ -141,3 +100,9 @@
     </div>
   </footer>
 </div>
+
+<style>
+    :global(h1, h2, h3, h4, h5, h6, nav, .font-grotesk) {
+        font-family: "Space Grotesk Variable", sans-serif
+    }
+</style>

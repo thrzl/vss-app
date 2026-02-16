@@ -1,8 +1,10 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "hello_world": "bonjour, {name} de fr!",
+  "hello_world": "bienvenue, {name}!",
   "nav_home": "accueil",
-  "nav_calendar": "calendrier",
+  "nav_workshops": "séminaires",
   "nav_settings": "réglages",
-  "language": "langue"
+  "language": "langue",
+  "due_assignments": "vous avez {count} tâches pour faire cette semain",
+  "mode_switcher": "thème"
 }
