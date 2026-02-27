@@ -9,12 +9,14 @@
   import { m } from "$lib/paraglide/messages"
   import { ModeWatcher } from 'mode-watcher';
   import NavUserIcon from '$lib/components/NavUserIcon.svelte';
+  import { fadeIn, staggerChildren } from '$lib/motion';
 
   let { children } = $props();
 
   // Navigation links – update as routes are created
   const navLinks = [
     { href: '/', label: m.nav_home() },
+    { href: '/tasks', label: 'Tasks' },
     { href: '/workshops', label: m.nav_workshops() },
     // { href: '/todo', label: m.nav_todo() },
     { href: '/settings', label: m.nav_settings() }
@@ -39,7 +41,7 @@
 <ModeWatcher/>
 <div class="min-h-screen flex flex-col">
   <!-- Header -->
-  <header class="border-b">
+  <header class="border-b" use:fadeIn={{ duration: 0.5, y: -12 }}>
     <div class="container mx-auto px-4 py-3 flex items-center justify-between">
       <!-- Logo -->
       <a href={localizeHref('/', { locale: getLocale() })} class="font-bold text-xl">
@@ -47,7 +49,7 @@
       </a>
 
       <!-- Desktop Navigation -->
-      <nav class="hidden md:flex items-center space-x-4">
+      <nav class="hidden md:flex items-center space-x-4" use:staggerChildren={{ staggerDelay: 0.05, duration: 0.35, y: -8 }}>
         {#each navLinks as link}
           <a
             href={localizeHref(link.href, { locale: getLocale() })}
@@ -68,12 +70,12 @@
   </header>
 
   <!-- Main Content -->
-  <main class="flex-1 container mx-auto px-4 py-6">
+  <main class="flex-1 container mx-auto px-4 py-6" use:fadeIn={{ duration: 0.5, delay: 0.1, y: 16 }}>
     {@render children()}
   </main>
 
   <!-- Footer -->
-  <footer class="border-t py-6">
+  <footer class="border-t py-6" use:fadeIn={{ duration: 0.5, delay: 0.2, y: 12 }}>
     <div class="container mx-auto px-4 text-center text-sm text-muted-foreground">
       <p>&copy; {new Date().getFullYear()} Prince George's Community College - Vocational Support Services</p>
       <p class="mt-1">
@@ -83,7 +85,7 @@
       <Select.Root
           type="single"
         value={getLocale()}
-        onValueChange={(value) => { setLocale(value); const url = new URL(window.location.href); url.searchParams.set('locale', value); window.location.href = url.toString();}}
+        onValueChange={(value) => { setLocale(value as "en" | "fr"); const url = new URL(window.location.href); url.searchParams.set('locale', value); window.location.href = url.toString();}}
       >
           <Select.Trigger class="border-none! shadow-none">
               <Globe /> {langMap[getLocale()]}

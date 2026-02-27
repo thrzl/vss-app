@@ -1,7 +1,18 @@
 {
   "name": "vss-app",
   "compatibility_date": "2026-02-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": ".svelte-kit/cloudflare/_worker.js",
   "assets": {
-    "directory": "./dist",
+    "directory": ".svelte-kit/cloudflare",
+    "binding": "ASSETS",
   },
+  "d1_databases": [
+    {
+      "binding": "DATABASE",
+      "database_name": "vss-app",
+      "database_id": "bc0c4880-cfe3-4655-ab3a-de95da4c3cee",
+      "migrations_dir": "drizzle/migrations",
+    },
+  ],
 }

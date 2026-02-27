@@ -5,7 +5,7 @@
     import { Label } from "$lib/components/ui/label";
     import { buttonVariants } from "$lib/components/ui/button/button.svelte";
     import Button from "$lib/components/ui/button/button.svelte";
-    import { Menu, Globe, SunMoonIcon } from "@lucide/svelte";
+    import { Menu, Globe, SunMoonIcon, LogOutIcon } from "@lucide/svelte";
     import * as Select from "$lib/components/ui/select";
     import {
         userPrefersMode,
@@ -20,6 +20,9 @@
         getLocale,
     } from "$lib/paraglide/runtime";
     import { cn } from "$lib/utils";
+    import SparkMD5 from "spark-md5";
+    import { page } from "$app/state";
+
     const navLinks = [
         { href: "/", label: m.nav_home() },
         { href: "/workshops", label: m.nav_workshops() },
@@ -43,18 +46,37 @@
         en: "english",
         fr: "français",
     };
+
+    // Read user directly from server-provided page data
+    const user = $derived(page.data.user);
+
+    const avatarHash = $derived(
+        user?.email ? SparkMD5.hash(user.email) : null,
+    );
 </script>
 
 <div class="flex flex-row flex-wrap items-center gap-12">
     <Dropdown.Root>
         <Dropdown.Trigger class="cursor-pointer">
             <Avatar.Root class="border border-solid bg-secondary">
-                <Avatar.Image src="https://github.com/thrzl.png" alt="@thrzl" />
-                <Avatar.Fallback>TB</Avatar.Fallback>
+                {#if avatarHash}
+                    <Avatar.Image
+                        src={`https://gravatar.com/avatar/${avatarHash}`}
+                        alt={user?.email}
+                    />
+                {/if}
+                <Avatar.Fallback>{user?.name?.slice(0, 2).toUpperCase() ?? "??"}</Avatar.Fallback>
             </Avatar.Root>
         </Dropdown.Trigger>
         <Dropdown.Content class={cn("pb-4 pt-2 px-2")}>
             <Dropdown.Label class="font-bold font-grotesk">Menu</Dropdown.Label>
+            {#if user?.email}
+                <Dropdown.Label
+                    class="font-normal text-muted-foreground text-xs truncate max-w-48"
+                >
+                    {user.email}
+                </Dropdown.Label>
+            {/if}
             <Dropdown.Group>
                 {#each navLinks as link}
                     <a
@@ -69,7 +91,7 @@
                     </a>
                 {/each}
             </Dropdown.Group>
-            <Dropdown.Separator class="my-4" />
+            <Dropdown.Separator class="my-2" />
             <div class="space-y-2 px-2">
                 <Label class="text-sm font-medium font-grotesk" for="language"
                     >{m.language()}</Label
@@ -78,7 +100,7 @@
                     type="single"
                     value={getLocale()}
                     onValueChange={(value) => {
-                        setLocale(value);
+                        setLocale(value as "en" | "fr");
                         const url = new URL(window.location.href);
                         url.searchParams.set("locale", value);
                         window.location.href = url.toString();
@@ -101,11 +123,9 @@
                 >
                 <Select.Root
                     type="single"
-                    id="mode"
                     value={userPrefersMode.current}
                     onValueChange={(value) => {
-                        console.log(value);
-                        setMode(value);
+                        setMode(value as "light" | "dark" | "system");
                     }}
                 >
                     <Select.Trigger class="w-full text-left">
@@ -119,12 +139,28 @@
                     <Select.Content>
                         {#each ["light", "dark", "system"] as mode}
                             <Select.Item value={mode} label={mode}>
-                                {themeLabels[getLocale()][mode]}
+                                {themeLabels[getLocale()][mode as "light" | "dark" | "system"]}
                             </Select.Item>
                         {/each}
                     </Select.Content>
                 </Select.Root>
             </div>
+            {#if user}
+                <Dropdown.Separator class="my-2" />
+                <Dropdown.Group>
+                    <form method="POST" action="/auth/logout">
+                        <Dropdown.Item
+                            class="text-destructive focus:text-destructive cursor-pointer"
+                            onclick={(e) => {
+                                e.currentTarget.closest("form")?.requestSubmit();
+                            }}
+                        >
+                            <LogOutIcon class="mr-2 h-4 w-4" />
+                            sign out
+                        </Dropdown.Item>
+                    </form>
+                </Dropdown.Group>
+            {/if}
         </Dropdown.Content>
     </Dropdown.Root>
 </div>
