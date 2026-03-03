@@ -26,6 +26,7 @@ export const actions: Actions = {
 
     const formData = await request.formData();
     const title = formData.get("title") as string;
+    const description = formData.get("description") as string | null;
     const due_at = formData.get("due_at") as string | null;
 
     if (!title?.trim()) {
@@ -37,6 +38,7 @@ export const actions: Actions = {
     try {
       await db.insert(tasks).values({
         title: title.trim(),
+        description: description?.trim() || null,
         dueAt: due_at ? `${due_at}T12:00:00Z` : null,
         owner: locals.user.id,
         status: 0,
@@ -52,6 +54,7 @@ export const actions: Actions = {
     const formData = await request.formData();
     const id = Number(formData.get("id"));
     const title = formData.get("title") as string;
+    const description = formData.get("description") as string | null;
     const due_at = formData.get("due_at") as string | null;
 
     if (!id) return fail(400, { message: "Task ID is required." });
@@ -64,7 +67,9 @@ export const actions: Actions = {
         .update(tasks)
         .set({
           title: title.trim(),
+          description: description?.trim() || null,
           dueAt: due_at ? `${due_at}T12:00:00Z` : null,
+          lastLocalEdit: new Date().toISOString(),
         })
         .where(and(eq(tasks.id, id), eq(tasks.owner, locals.user.id)));
     } catch {
@@ -89,7 +94,11 @@ export const actions: Actions = {
     try {
       await db
         .update(tasks)
-        .set({ status: newStatus, completedAt })
+        .set({
+          status: newStatus,
+          completedAt,
+          lastLocalEdit: new Date().toISOString(),
+        })
         .where(and(eq(tasks.id, id), eq(tasks.owner, locals.user.id)));
     } catch {
       return fail(500, { message: "Failed to toggle task." });

@@ -4,13 +4,13 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite build && wrangler dev",
-    "build": "vite build",
+    "dev": "bunx --bun vite dev",
+    "build": "bunx --bun vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-    "db:types": "supabase gen types typescript --project-id vpjtmrwleijkfvhitdup > src/lib/database.types.ts"
+    "deploy": "bunx --bun vite build && wrangler deploy"
   },
   "devDependencies": {
     "@inlang/paraglide-js": "^2.11.0",
@@ -27,6 +27,7 @@
     "bits-ui": "^2.15.5",
     "clsx": "^2.1.1",
     "drizzle-kit": "^0.31.9",
+    "miniflare": "^4.20260305.0",
     "supabase": "^2.76.14",
     "svelte": "^5.50.3",
     "svelte-check": "^4.3.6",
@@ -40,6 +41,7 @@
     "wrangler": "^4.65.0"
   },
   "dependencies": {
+    "@cloudflare/vite-plugin": "^1.25.6",
     "@fontsource-variable/space-grotesk": "^5.2.10",
     "@oslojs/crypto": "^1.0.1",
     "@oslojs/encoding": "^1.1.0",

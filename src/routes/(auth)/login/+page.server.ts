@@ -13,7 +13,7 @@ import {
 
 export const load: PageServerLoad = async ({ locals }) => {
   if (locals.user) {
-    redirect(303, "/home");
+    redirect(303, "/dashboard");
   }
   return {};
 };
@@ -58,13 +58,9 @@ export const actions: Actions = {
     }
 
     if (existing && !existing.totpSecret) {
-      // Account exists but TOTP not yet set up — generate secret for setup
+      // Account exists but TOTP not yet set up — generate secret and return it
+      // without writing to DB yet; we'll persist it only after verification.
       const secret = generateTotpSecret();
-      await db
-        .update(users)
-        .set({ totpSecret: secret })
-        .where(eq(users.id, existing.id));
-
       const uri = getTotpKeyUri(email, secret);
       return {
         step: "setup" as const,
@@ -74,19 +70,9 @@ export const actions: Actions = {
       };
     }
 
-    // New account — create user and generate TOTP secret for setup
+    // New account — generate TOTP secret without creating a DB row yet.
+    // The row will be inserted only after the user proves they can verify the code.
     const secret = generateTotpSecret();
-    const id = crypto.randomUUID();
-    const name = email.split("@")[0];
-
-    await db.insert(users).values({
-      id,
-      email,
-      name,
-      totpSecret: secret,
-      tokenVersion: 0,
-    });
-
     const uri = getTotpKeyUri(email, secret);
     return { step: "setup" as const, email, totpUri: uri, totpSecret: secret };
   },
@@ -139,7 +125,7 @@ export const actions: Actions = {
     });
     setSessionCookie(cookies, token);
 
-    redirect(303, "/home");
+    redirect(303, "/dashboard");
   },
 
   /**
@@ -175,18 +161,35 @@ export const actions: Actions = {
     const env = platform!.env;
     const db = getDb(d1);
 
-    // Confirm the user exists and the secret matches what we stored
-    const [user] = await db
+    // Look up any existing user record for this email.
+    const [existing] = await db
       .select()
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
 
-    if (!user || user.totpSecret !== totpSecret) {
-      return fail(400, {
-        step: "email" as const,
-        message: "Something went wrong. Please start over.",
-      });
+    let user;
+
+    if (existing) {
+      // Update the existing user's TOTP secret now that it's been verified.
+      await db
+        .update(users)
+        .set({ totpSecret })
+        .where(eq(users.id, existing.id));
+      user = { ...existing, totpSecret };
+    } else {
+      // First-time registration — create the user row now that TOTP is verified.
+      const id = crypto.randomUUID();
+      const name = email.split("@")[0];
+      const newUser = {
+        id,
+        email,
+        name,
+        totpSecret,
+        tokenVersion: 0,
+      };
+      await db.insert(users).values(newUser);
+      user = { ...newUser, createdAt: new Date().toISOString() };
     }
 
     // Issue JWT and set cookie
@@ -195,6 +198,6 @@ export const actions: Actions = {
     });
     setSessionCookie(cookies, token);
 
-    redirect(303, "/home");
+    redirect(303, "/dashboard");
   },
 };

@@ -19,6 +19,9 @@ declare global {
         DATABASE: D1Database;
         JWT_SECRET: string;
       };
+      context: {
+        waitUntil(promise: Promise<unknown>): void;
+      };
     }
   }
 }

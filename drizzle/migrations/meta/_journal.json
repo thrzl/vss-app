@@ -8,6 +8,20 @@
       "when": 1772148693435,
       "tag": "0000_needy_thor_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1772148693436,
+      "tag": "0001_canvas_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1772148693437,
+      "tag": "0002_task_description",
+      "breakpoints": true
     }
   ]
 }

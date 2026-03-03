@@ -1,22 +1,28 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { locales, localizeHref, setLocale, getLocale } from '$lib/paraglide/runtime';
+  import { localizeHref, setLocale, getLocale } from '$lib/paraglide/runtime';
   import './layout.css';
   import favicon from '$lib/assets/favicon.svg';
   import '@fontsource-variable/space-grotesk';
-  import * as Select from '$lib/components/ui/select';
-  import { Globe } from '@lucide/svelte';
+
   import { m } from "$lib/paraglide/messages"
   import { ModeWatcher } from 'mode-watcher';
   import NavUserIcon from '$lib/components/NavUserIcon.svelte';
+  import MobileBottomNav from '$lib/components/MobileBottomNav.svelte';
   import { fadeIn, staggerChildren } from '$lib/motion';
 
   let { children } = $props();
 
+  const pathname = $derived(page.url.pathname);
+  function isActive(href: string) {
+    if (href === '/dashboard') return pathname === '/dashboard' || pathname === '/';
+    return pathname.startsWith(href);
+  }
+
   // Navigation links – update as routes are created
   const navLinks = [
-    { href: '/', label: m.nav_home() },
-    { href: '/tasks', label: 'Tasks' },
+    { href: '/dashboard', label: m.nav_home() },
+    { href: '/tasks', label: m.nav_tasks() },
     { href: '/workshops', label: m.nav_workshops() },
     // { href: '/todo', label: m.nav_todo() },
     { href: '/settings', label: m.nav_settings() }
@@ -28,10 +34,7 @@
     // @ts-ignore
     setLocale(params.get('locale') || 'en');
 
-    const langMap = {
-      en: "english",
-      fr: "français"
-    }
+
 </script>
 
 <svelte:head>
@@ -53,7 +56,8 @@
         {#each navLinks as link}
           <a
             href={localizeHref(link.href, { locale: getLocale() })}
-            class="text-sm font-medium hover:underline"
+            class="text-sm font-medium hover:underline underline-offset-4 {isActive(link.href) ? 'text-primary underline' : 'text-muted-foreground'}"
+            aria-current={isActive(link.href) ? 'page' : undefined}
           >
             {link.label}
           </a>
@@ -70,37 +74,21 @@
   </header>
 
   <!-- Main Content -->
-  <main class="flex-1 container mx-auto px-4 py-6" use:fadeIn={{ duration: 0.5, delay: 0.1, y: 16 }}>
+  <main class="flex-1 container mx-auto px-4 py-6 pb-20 md:pb-6" use:fadeIn={{ duration: 0.5, delay: 0.1, y: 16 }}>
     {@render children()}
   </main>
 
   <!-- Footer -->
-  <footer class="border-t py-6" use:fadeIn={{ duration: 0.5, delay: 0.2, y: 12 }}>
+  <footer class="border-t py-6 mb-14 md:mb-0" use:fadeIn={{ duration: 0.5, delay: 0.2, y: 12 }}>
     <div class="container mx-auto px-4 text-center text-sm text-muted-foreground">
-      <p>&copy; {new Date().getFullYear()} Prince George's Community College - Vocational Support Services</p>
+      <p>{m.footer_copyright({ year: new Date().getFullYear().toString() })}</p>
       <p class="mt-1">
         <a href="mailto:vss@pgcc.edu" class="hover:underline">vss@pgcc.edu</a> | (301) 546-0263
       </p>
-      <div class="mx-auto w-max mt-1">
-      <Select.Root
-          type="single"
-        value={getLocale()}
-        onValueChange={(value) => { setLocale(value as "en" | "fr"); const url = new URL(window.location.href); url.searchParams.set('locale', value); window.location.href = url.toString();}}
-      >
-          <Select.Trigger class="border-none! shadow-none">
-              <Globe /> {langMap[getLocale()]}
-          </Select.Trigger>
-          <Select.Content>
-        {#each locales as locale}
-          <Select.Item value={locale} label={langMap[locale]}>
-            {langMap[locale]}
-          </Select.Item>
-        {/each}
-          </Select.Content>
-      </Select.Root>
-      </div>
     </div>
   </footer>
+
+  <MobileBottomNav />
 </div>
 
 <style>

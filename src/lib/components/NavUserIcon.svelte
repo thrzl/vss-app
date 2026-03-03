@@ -23,26 +23,25 @@
     import SparkMD5 from "spark-md5";
     import { page } from "$app/state";
 
+    const pathname = $derived(page.url.pathname);
+    function isActive(href: string) {
+        if (href === '/dashboard') return pathname === '/dashboard' || pathname === '/';
+        return pathname.startsWith(href);
+    }
+
     const navLinks = [
-        { href: "/", label: m.nav_home() },
+        { href: "/dashboard", label: m.nav_home() },
         { href: "/workshops", label: m.nav_workshops() },
         // { href: '/todo', label: m.nav_todo() },
         { href: "/settings", label: m.nav_settings() },
         // add admin later if needed: { href: '/admin', label: 'Admin' }
     ];
-    const themeLabels = {
-        en: {
-            light: "light",
-            dark: "dark",
-            system: "system",
-        },
-        fr: {
-            light: "clair",
-            dark: "sombre",
-            system: "système",
-        },
-    };
-    const langMap = {
+    const themeLabels = $derived({
+        light: m.theme_light(),
+        dark: m.theme_dark(),
+        system: m.theme_system(),
+    });
+    const langMap: Record<string, string> = {
         en: "english",
         fr: "français",
     };
@@ -62,14 +61,14 @@
                 {#if avatarHash}
                     <Avatar.Image
                         src={`https://gravatar.com/avatar/${avatarHash}`}
-                        alt={user?.email}
+                        alt={user?.name || user?.email.split("@")[0]}
                     />
                 {/if}
                 <Avatar.Fallback>{user?.name?.slice(0, 2).toUpperCase() ?? "??"}</Avatar.Fallback>
             </Avatar.Root>
         </Dropdown.Trigger>
         <Dropdown.Content class={cn("pb-4 pt-2 px-2")}>
-            <Dropdown.Label class="font-bold font-grotesk">Menu</Dropdown.Label>
+            <Dropdown.Label class="font-bold font-grotesk">{m.menu()}</Dropdown.Label>
             {#if user?.email}
                 <Dropdown.Label
                     class="font-normal text-muted-foreground text-xs truncate max-w-48"
@@ -84,8 +83,9 @@
                             locale: getLocale(),
                         })}
                         class="text-normal cursor-pointer!"
+                        aria-current={isActive(link.href) ? 'page' : undefined}
                     >
-                        <Dropdown.Item>
+                        <Dropdown.Item class={isActive(link.href) ? 'text-primary font-semibold' : ''}>
                             {link.label}
                         </Dropdown.Item>
                     </a>
@@ -131,7 +131,7 @@
                     <Select.Trigger class="w-full text-left">
                         <span class="flex flex-row items-center gap-x-2">
                             <SunMoonIcon />
-                            {themeLabels[getLocale()][
+                            {themeLabels[
                                 userPrefersMode.current
                             ]}</span
                         >
@@ -139,7 +139,7 @@
                     <Select.Content>
                         {#each ["light", "dark", "system"] as mode}
                             <Select.Item value={mode} label={mode}>
-                                {themeLabels[getLocale()][mode as "light" | "dark" | "system"]}
+                                {themeLabels[mode as "light" | "dark" | "system"]}
                             </Select.Item>
                         {/each}
                     </Select.Content>
@@ -156,7 +156,7 @@
                             }}
                         >
                             <LogOutIcon class="mr-2 h-4 w-4" />
-                            sign out
+                            {m.sign_out()}
                         </Dropdown.Item>
                     </form>
                 </Dropdown.Group>

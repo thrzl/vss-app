@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { m } from "$lib/paraglide/messages";
     import * as Card from "$lib/components/ui/card/index.js";
     import {
         Field,
@@ -123,15 +124,12 @@
                                         />
                                     </div>
                                     <h1 class="text-2xl font-bold">
-                                        set up authenticator
+                                        {m.login_setup_heading()}
                                     </h1>
                                     <p
                                         class="text-muted-foreground text-balance text-sm"
                                     >
-                                        Scan this QR code with your
-                                        authenticator app (Google Authenticator,
-                                        Authy, etc.), then enter the 6-digit
-                                        code to confirm.
+                                        {m.login_setup_description()}
                                     </p>
                                 </div>
 
@@ -142,7 +140,7 @@
                                     >
                                         <img
                                             src={qrDataUrl}
-                                            alt="TOTP QR Code"
+                                            alt={m.totp_qr_alt()}
                                             class="rounded-lg border"
                                             width="200"
                                             height="200"
@@ -155,7 +153,7 @@
                                         <p
                                             class="text-xs text-muted-foreground"
                                         >
-                                            Can't scan? Enter this key manually:
+                                            {m.login_manual_key()}
                                         </p>
                                         <code
                                             class="text-xs font-mono bg-muted px-2 py-1 rounded select-all"
@@ -167,7 +165,7 @@
 
                                 <Field>
                                     <FieldLabel for="setup-code"
-                                        >verification code</FieldLabel
+                                        >{m.verification_code()}</FieldLabel
                                     >
                                     <Input
                                         id="setup-code"
@@ -201,9 +199,9 @@
                                             <LoaderCircleIcon
                                                 class="animate-spin"
                                             />
-                                            verifying…
+                                            {m.verifying()}
                                         {:else}
-                                            confirm & sign in
+                                            {m.confirm_sign_in()}
                                         {/if}
                                     </Button>
                                 </Field>
@@ -216,7 +214,7 @@
                                         class="underline hover:text-foreground transition-colors"
                                         onclick={handleStartOver}
                                     >
-                                        start over
+                                        {m.start_over()}
                                     </a>
                                 </p>
                             </FieldGroup>
@@ -251,23 +249,18 @@
                                         />
                                     </div>
                                     <h1 class="text-2xl font-bold">
-                                        enter your code
+                                        {m.login_totp_heading()}
                                     </h1>
                                     <p
                                         class="text-muted-foreground text-balance text-sm"
                                     >
-                                        Open your authenticator app and enter
-                                        the 6-digit code for
-                                        <span
-                                            class="font-medium text-foreground"
-                                            >{email}</span
-                                        >.
+                                        {m.login_totp_description({ email })}
                                     </p>
                                 </div>
 
                                 <Field>
                                     <FieldLabel for="totp-code"
-                                        >verification code</FieldLabel
+                                        >{m.verification_code()}</FieldLabel
                                     >
                                     <Input
                                         id="totp-code"
@@ -301,10 +294,10 @@
                                             <LoaderCircleIcon
                                                 class="animate-spin"
                                             />
-                                            verifying…
+                                            {m.verifying()}
                                         {:else}
                                             <KeyRoundIcon />
-                                            sign in
+                                            {m.sign_in()}
                                         {/if}
                                     </Button>
                                 </Field>
@@ -317,7 +310,7 @@
                                         class="underline hover:text-foreground transition-colors"
                                         onclick={handleStartOver}
                                     >
-                                        use a different email
+                                        {m.use_different_email()}
                                     </a>
                                 </p>
                             </FieldGroup>
@@ -342,16 +335,17 @@
                                 class="flex flex-col items-center gap-2 text-center"
                             >
                                 <h1 class="text-2xl font-bold">
-                                    welcome to fojo
+                                    {m.login_welcome()}
                                 </h1>
                                 <p class="text-muted-foreground text-balance">
-                                    enter your email to sign in or create an
-                                    account
+                                    {m.login_welcome_description()}
                                 </p>
                             </div>
 
                             <Field>
-                                <FieldLabel for="email">email</FieldLabel>
+                                <FieldLabel for="email"
+                                    >{m.email_label()}</FieldLabel
+                                >
                                 <Input
                                     id="email"
                                     name="email"
@@ -380,9 +374,9 @@
                                         <LoaderCircleIcon
                                             class="animate-spin"
                                         />
-                                        checking…
+                                        {m.checking()}
                                     {:else}
-                                        continue
+                                        {m.continue()}
                                     {/if}
                                 </Button>
                             </Field>
@@ -390,7 +384,7 @@
                                 <p
                                     class="text-sm text-muted-foreground text-center"
                                 >
-                                    must be a pgcc.edu email address
+                                    {m.must_be_pgcc_email()}
                                 </p>
                             {/if}
                         </FieldGroup>
@@ -402,13 +396,13 @@
 
     <div use:fadeIn={{ duration: 0.4, delay: 0.3, y: 8 }}>
         <FieldDescription class="px-6 text-center">
-            by continuing, you agree to our <a
-                href="##"
-                class="underline hover:text-foreground">terms of service</a
-            >
-            and
+            {m.terms_agreement()}
             <a href="##" class="underline hover:text-foreground"
-                >privacy policy</a
+                >{m.terms_of_service()}</a
+            >
+            {m.terms_and()}
+            <a href="##" class="underline hover:text-foreground"
+                >{m.privacy_policy()}</a
             >.
         </FieldDescription>
     </div>
