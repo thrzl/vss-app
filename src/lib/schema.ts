@@ -71,6 +71,21 @@ export const canvasSyncLogs = sqliteTable("canvas_sync_logs", {
     .default(sql`(current_timestamp)`),
 });
 
+export const passkeyCredentials = sqliteTable("passkey_credentials", {
+  id: text("id").primaryKey(), // crypto.randomUUID()
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  credentialId: text("credential_id").notNull().unique(), // base64url credential ID
+  publicKey: text("public_key").notNull(), // base64url-encoded public key bytes
+  counter: integer("counter", { mode: "number" }).notNull().default(0),
+  transports: text("transports"), // JSON array of authenticator transports
+  backedUp: integer("backed_up", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(current_timestamp)`),
+});
+
 // Inferred types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -80,3 +95,5 @@ export type CanvasIntegration = typeof canvasIntegrations.$inferSelect;
 export type NewCanvasIntegration = typeof canvasIntegrations.$inferInsert;
 export type CanvasSyncLog = typeof canvasSyncLogs.$inferSelect;
 export type NewCanvasSyncLog = typeof canvasSyncLogs.$inferInsert;
+export type PasskeyCredential = typeof passkeyCredentials.$inferSelect;
+export type NewPasskeyCredential = typeof passkeyCredentials.$inferInsert;

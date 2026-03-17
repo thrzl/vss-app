@@ -6,18 +6,12 @@
     import Button from "$lib/components/ui/button/button.svelte";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
-    import * as Dialog from "$lib/components/ui/dialog";
-    import {
-        fadeIn,
-        fadeInScale,
-        slideIn,
-    } from "$lib/motion";
+    import { fadeIn, slideIn } from "$lib/motion";
     import {
         UserIcon,
         MailIcon,
         ShieldCheckIcon,
         LoaderCircleIcon,
-        SmartphoneIcon,
         CheckCircle2Icon,
         KeyRoundIcon,
         GraduationCapIcon,
@@ -27,7 +21,6 @@
         CheckIcon,
         AlertCircleIcon,
     } from "@lucide/svelte";
-    import QRCode from "qrcode";
 
     let { data } = $props();
     const user = $derived(data.user);
@@ -44,29 +37,6 @@
     );
     const nameError = $derived(
         form?.action === "update_name" && form?.message ? form.message : null,
-    );
-
-    // TOTP rotation
-    let totpDialogOpen = $state(false);
-    let totpCode = $state("");
-    let totpLoading = $state(false);
-    let qrDataUrl = $state<string | null>(null);
-
-    const totpStep = $derived<"idle" | "confirm" | "done">(
-        form?.action === "rotate_totp" && form?.step === "confirm"
-            ? "confirm"
-            : form?.action === "rotate_totp" && form?.step === "done"
-              ? "done"
-              : "idle",
-    );
-    const totpUri = $derived(
-        form?.action === "rotate_totp" ? form?.totpUri ?? null : null,
-    );
-    const totpSecret = $derived(
-        form?.action === "rotate_totp" ? form?.totpSecret ?? null : null,
-    );
-    const totpError = $derived(
-        form?.action === "rotate_totp" && form?.message ? form.message : null,
     );
 
     // Keep name in sync when user changes
@@ -108,7 +78,6 @@
     $effect(() => {
         if (form !== undefined) {
             nameLoading = false;
-            totpLoading = false;
             canvasConnecting = false;
             canvasSyncing = false;
             canvasDisconnecting = false;
@@ -120,37 +89,6 @@
         if (canvasConnectSuccess) {
             canvasUrl = "";
             canvasToken = "";
-        }
-    });
-
-    // Generate QR code when TOTP URI is received
-    $effect(() => {
-        if (totpUri) {
-            QRCode.toDataURL(totpUri, { width: 200, margin: 2 }).then(
-                (url: string) => {
-                    qrDataUrl = url;
-                },
-            );
-        } else {
-            qrDataUrl = null;
-        }
-    });
-
-    // Open dialog when TOTP step becomes confirm
-    $effect(() => {
-        if (totpStep === "confirm") {
-            totpDialogOpen = true;
-        }
-    });
-
-    // Close dialog on success and reset
-    $effect(() => {
-        if (totpStep === "done") {
-            setTimeout(() => {
-                totpDialogOpen = false;
-                totpCode = "";
-                qrDataUrl = null;
-            }, 1500);
         }
     });
 
@@ -185,14 +123,20 @@
     </div>
 
     <!-- Profile section -->
-    <div use:slideIn={{ from: "left", duration: 0.45, delay: 0.1, distance: 20 }}>
+    <div
+        use:slideIn={{ from: "left", duration: 0.45, delay: 0.1, distance: 20 }}
+    >
         <Card.Root class="shadow-none">
             <Card.Header>
                 <div class="flex items-center gap-2">
-                    <div class="inline-flex items-center justify-center rounded-lg p-1.5 bg-primary/10">
+                    <div
+                        class="inline-flex items-center justify-center rounded-lg p-1.5 bg-primary/10"
+                    >
                         <UserIcon class="size-4 text-primary" />
                     </div>
-                    <Card.Title class="text-base">{m.settings_profile_heading()}</Card.Title>
+                    <Card.Title class="text-base"
+                        >{m.settings_profile_heading()}</Card.Title
+                    >
                 </div>
             </Card.Header>
             <Card.Content class="space-y-6">
@@ -224,7 +168,10 @@
                     }}
                     class="grid gap-2"
                 >
-                    <Label for="settings-name" class="flex items-center gap-1.5">
+                    <Label
+                        for="settings-name"
+                        class="flex items-center gap-1.5"
+                    >
                         <UserIcon class="size-3.5 text-muted-foreground" />
                         {m.settings_name_label()}
                     </Label>
@@ -240,7 +187,8 @@
                         />
                         <Button
                             type="submit"
-                            disabled={nameLoading || nameValue.trim() === user?.name}
+                            disabled={nameLoading ||
+                                nameValue.trim() === user?.name}
                             class="shrink-0"
                         >
                             {#if nameLoading}
@@ -251,7 +199,9 @@
                         </Button>
                     </div>
                     {#if nameSuccess}
-                        <p class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <p
+                            class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"
+                        >
                             <CheckCircle2Icon class="size-3" />
                             {m.settings_name_updated()}
                         </p>
@@ -265,62 +215,67 @@
     </div>
 
     <!-- Security section -->
-    <div use:slideIn={{ from: "left", duration: 0.45, delay: 0.2, distance: 20 }}>
+    <div
+        use:slideIn={{ from: "left", duration: 0.45, delay: 0.2, distance: 20 }}
+    >
         <Card.Root class="shadow-none">
             <Card.Header>
                 <div class="flex items-center gap-2">
-                    <div class="inline-flex items-center justify-center rounded-lg p-1.5 bg-violet-500/10">
-                        <ShieldCheckIcon class="size-4 text-violet-600 dark:text-violet-400" />
+                    <div
+                        class="inline-flex items-center justify-center rounded-lg p-1.5 bg-violet-500/10"
+                    >
+                        <ShieldCheckIcon
+                            class="size-4 text-violet-600 dark:text-violet-400"
+                        />
                     </div>
-                    <Card.Title class="text-base">{m.settings_security_heading()}</Card.Title>
+                    <Card.Title class="text-base"
+                        >{m.settings_security_heading()}</Card.Title
+                    >
                 </div>
             </Card.Header>
             <Card.Content class="space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div
+                    class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                >
                     <div class="space-y-1">
                         <p class="text-sm font-medium">
                             {m.settings_totp_title()}
                         </p>
-                        <p class="text-xs text-muted-foreground leading-relaxed max-w-sm">
+                        <p
+                            class="text-xs text-muted-foreground leading-relaxed max-w-sm"
+                        >
                             {m.settings_totp_description()}
                         </p>
                     </div>
-                    <form
-                        method="POST"
-                        action="?/rotate_totp_start"
-                        use:enhance={() => {
-                            totpLoading = true;
-                            totpCode = "";
-                            return async ({ update }) => {
-                                await update();
-                            };
-                        }}
-                    >
-                        <Button variant="outline" type="submit" class="gap-2 shrink-0">
-                            {#if totpLoading && totpStep === "idle"}
-                                <LoaderCircleIcon class="size-4 animate-spin" />
-                            {:else}
-                                <KeyRoundIcon class="size-4" />
-                            {/if}
-                            {m.settings_totp_rotate()}
-                        </Button>
-                    </form>
+                    <p class="text-xs text-muted-foreground sm:max-w-xs">
+                        {m.settings_totp_description()}
+                    </p>
                 </div>
             </Card.Content>
         </Card.Root>
     </div>
 
     <!-- Canvas LMS section -->
-    <div use:slideIn={{ from: "left", duration: 0.45, delay: 0.3, distance: 20 }}>
+    <div
+        use:slideIn={{ from: "left", duration: 0.45, delay: 0.3, distance: 20 }}
+    >
         <Card.Root class="shadow-none">
             <Card.Header>
                 <div class="flex items-center gap-2">
-                    <div class="inline-flex items-center justify-center rounded-lg p-1.5 bg-orange-500/10">
-                        <GraduationCapIcon class="size-4 text-orange-600 dark:text-orange-400" />
+                    <div
+                        class="inline-flex items-center justify-center rounded-lg p-1.5 bg-orange-500/10"
+                    >
+                        <GraduationCapIcon
+                            class="size-4 text-orange-600 dark:text-orange-400"
+                        />
                     </div>
-                    <Card.Title class="text-base">{m.settings_canvas_heading()}</Card.Title>
+                    <Card.Title class="text-base"
+                        >{m.settings_canvas_heading()}</Card.Title
+                    >
                     {#if canvas.connected}
-                        <span class="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                        <span
+                            class="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                        >
                             <CheckIcon class="size-3" />
                             {m.settings_canvas_connected()}
                         </span>
@@ -337,10 +292,14 @@
                         <div class="flex items-center justify-between">
                             <div class="space-y-0.5">
                                 <p class="text-sm font-medium">
-                                    {m.settings_canvas_connected_to({ url: canvas.canvasUrl ?? "" })}
+                                    {m.settings_canvas_connected_to({
+                                        url: canvas.canvasUrl ?? "",
+                                    })}
                                 </p>
                                 <p class="text-xs text-muted-foreground">
-                                    {m.settings_canvas_last_sync({ date: formatSyncDate(canvas.lastSyncAt) })}
+                                    {m.settings_canvas_last_sync({
+                                        date: formatSyncDate(canvas.lastSyncAt),
+                                    })}
                                 </p>
                             </div>
                         </div>
@@ -356,9 +315,16 @@
                                     };
                                 }}
                             >
-                                <Button variant="outline" type="submit" disabled={canvasSyncing} class="gap-2">
+                                <Button
+                                    variant="outline"
+                                    type="submit"
+                                    disabled={canvasSyncing}
+                                    class="gap-2"
+                                >
                                     {#if canvasSyncing}
-                                        <LoaderCircleIcon class="size-4 animate-spin" />
+                                        <LoaderCircleIcon
+                                            class="size-4 animate-spin"
+                                        />
                                         {m.settings_canvas_syncing()}
                                     {:else}
                                         <RefreshCwIcon class="size-4" />
@@ -376,9 +342,16 @@
                                     };
                                 }}
                             >
-                                <Button variant="ghost" type="submit" disabled={canvasDisconnecting} class="gap-2 text-destructive hover:text-destructive">
+                                <Button
+                                    variant="ghost"
+                                    type="submit"
+                                    disabled={canvasDisconnecting}
+                                    class="gap-2 text-destructive hover:text-destructive"
+                                >
                                     {#if canvasDisconnecting}
-                                        <LoaderCircleIcon class="size-4 animate-spin" />
+                                        <LoaderCircleIcon
+                                            class="size-4 animate-spin"
+                                        />
                                     {:else}
                                         <UnlinkIcon class="size-4" />
                                     {/if}
@@ -388,17 +361,23 @@
                         </div>
 
                         {#if canvasSyncSuccess && canvasSyncResult}
-                            <p class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <p
+                                class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"
+                            >
                                 <CheckCircle2Icon class="size-3" />
                                 {m.settings_canvas_sync_success({
                                     created: String(canvasSyncResult.created),
                                     updated: String(canvasSyncResult.updated),
-                                    completed: String(canvasSyncResult.completed),
+                                    completed: String(
+                                        canvasSyncResult.completed,
+                                    ),
                                 })}
                             </p>
                         {/if}
                         {#if canvasDisconnectSuccess}
-                            <p class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <p
+                                class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"
+                            >
                                 <CheckCircle2Icon class="size-3" />
                                 {m.settings_canvas_disconnect_success()}
                             </p>
@@ -418,8 +397,13 @@
                         class="space-y-4"
                     >
                         <div class="grid gap-2">
-                            <Label for="canvas-url" class="flex items-center gap-1.5">
-                                <LinkIcon class="size-3.5 text-muted-foreground" />
+                            <Label
+                                for="canvas-url"
+                                class="flex items-center gap-1.5"
+                            >
+                                <LinkIcon
+                                    class="size-3.5 text-muted-foreground"
+                                />
                                 {m.settings_canvas_url_label()}
                             </Label>
                             <Input
@@ -435,8 +419,13 @@
                         </div>
 
                         <div class="grid gap-2">
-                            <Label for="canvas-token" class="flex items-center gap-1.5">
-                                <KeyRoundIcon class="size-3.5 text-muted-foreground" />
+                            <Label
+                                for="canvas-token"
+                                class="flex items-center gap-1.5"
+                            >
+                                <KeyRoundIcon
+                                    class="size-3.5 text-muted-foreground"
+                                />
                                 {m.settings_canvas_token_label()}
                             </Label>
                             <Input
@@ -453,13 +442,21 @@
                         </div>
 
                         {#if canvasConnectSuccess}
-                            <p class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <p
+                                class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"
+                            >
                                 <CheckCircle2Icon class="size-3" />
                                 {m.settings_canvas_connect_success()}
                             </p>
                         {/if}
 
-                        <Button type="submit" disabled={canvasConnecting || !canvasUrl || !canvasToken} class="gap-2">
+                        <Button
+                            type="submit"
+                            disabled={canvasConnecting ||
+                                !canvasUrl ||
+                                !canvasToken}
+                            class="gap-2"
+                        >
                             {#if canvasConnecting}
                                 <LoaderCircleIcon class="size-4 animate-spin" />
                                 {m.settings_canvas_connecting()}
@@ -472,7 +469,9 @@
                 {/if}
 
                 {#if canvasError}
-                    <div class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive flex items-center gap-1.5">
+                    <div
+                        class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive flex items-center gap-1.5"
+                    >
                         <AlertCircleIcon class="size-3.5 shrink-0" />
                         {canvasError}
                     </div>
@@ -481,112 +480,3 @@
         </Card.Root>
     </div>
 </div>
-
-<!-- TOTP rotation dialog -->
-<Dialog.Root bind:open={totpDialogOpen}>
-    <Dialog.Content class="sm:max-w-[425px]">
-        {#if totpStep === "done"}
-            <div
-                class="flex flex-col items-center justify-center py-8 gap-3 text-center"
-                use:fadeInScale={{ duration: 0.4, scale: 0.95 }}
-            >
-                <div class="inline-flex items-center justify-center rounded-full bg-emerald-500/10 p-3">
-                    <CheckCircle2Icon class="size-8 text-emerald-500" />
-                </div>
-                <p class="font-semibold">{m.settings_totp_success_title()}</p>
-                <p class="text-sm text-muted-foreground">
-                    {m.settings_totp_success_body()}
-                </p>
-            </div>
-        {:else}
-            <form
-                method="POST"
-                action="?/rotate_totp_confirm"
-                use:enhance={() => {
-                    totpLoading = true;
-                    return async ({ update }) => {
-                        await update();
-                    };
-                }}
-            >
-                <input type="hidden" name="totp_secret" value={totpSecret ?? ""} />
-
-                <Dialog.Header>
-                    <Dialog.Title>{m.settings_totp_dialog_title()}</Dialog.Title>
-                    <Dialog.Description>
-                        {m.settings_totp_dialog_description()}
-                    </Dialog.Description>
-                </Dialog.Header>
-
-                <div class="grid gap-4 py-4">
-                    <!-- QR Code -->
-                    {#if qrDataUrl}
-                        <div class="flex justify-center" use:fadeInScale={{ duration: 0.4, scale: 0.9 }}>
-                            <img
-                                src={qrDataUrl}
-                                alt={m.totp_qr_alt()}
-                                class="rounded-lg border shadow-sm"
-                                width="200"
-                                height="200"
-                            />
-                        </div>
-                    {/if}
-
-                    <!-- Manual key -->
-                    {#if totpSecret}
-                        <div class="text-center">
-                            <p class="text-xs text-muted-foreground mb-1">
-                                {m.login_manual_key()}
-                            </p>
-                            <code
-                                class="text-xs font-mono bg-muted px-2 py-1 rounded select-all break-all"
-                            >
-                                {totpSecret}
-                            </code>
-                        </div>
-                    {/if}
-
-                    <!-- Code input -->
-                    <div class="grid gap-2">
-                        <Label for="totp-rotate-code">{m.verification_code()}</Label>
-                        <Input
-                            id="totp-rotate-code"
-                            name="code"
-                            bind:value={totpCode}
-                            placeholder="000000"
-                            maxlength={6}
-                            inputmode="numeric"
-                            pattern="[0-9]*"
-                            autocomplete="one-time-code"
-                            class="text-center text-lg tracking-widest font-mono"
-                            required
-                        />
-                    </div>
-
-                    {#if totpError}
-                        <p class="text-sm text-destructive text-center">{totpError}</p>
-                    {/if}
-                </div>
-
-                <Dialog.Footer>
-                    <Dialog.Close>
-                        {#snippet child({ props })}
-                            <Button {...props} variant="outline" type="button">
-                                {m.cancel()}
-                            </Button>
-                        {/snippet}
-                    </Dialog.Close>
-                    <Button type="submit" disabled={totpLoading || totpCode.length < 6}>
-                        {#if totpLoading}
-                            <LoaderCircleIcon class="size-4 animate-spin mr-1.5" />
-                            {m.verifying()}
-                        {:else}
-                            <SmartphoneIcon class="size-4 mr-1.5" />
-                            {m.settings_totp_confirm_button()}
-                        {/if}
-                    </Button>
-                </Dialog.Footer>
-            </form>
-        {/if}
-    </Dialog.Content>
-</Dialog.Root>

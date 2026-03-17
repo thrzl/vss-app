@@ -17,7 +17,10 @@ declare global {
     interface Platform {
       env: {
         DATABASE: D1Database;
-        JWT_SECRET: string;
+        AUTH_SESSION_SECRET: string;
+        PASSKEY_RP_ID?: string;
+        PASSKEY_RP_NAME?: string;
+        PASSKEY_ORIGIN?: string;
       };
       context: {
         waitUntil(promise: Promise<unknown>): void;
@@ -26,4 +29,4 @@ declare global {
   }
 }
 
-export {};
+export { };

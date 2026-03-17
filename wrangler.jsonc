@@ -1,7 +1,9 @@
 {
   "name": "vss-app",
   "compatibility_date": "2026-02-16",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "main": ".svelte-kit/cloudflare/_worker.js",
   "assets": {
     "directory": ".svelte-kit/cloudflare",
@@ -15,4 +17,10 @@
       "migrations_dir": "drizzle/migrations",
     },
   ],
+  "vars": {
+    "AUTH0_DOMAIN": "dev-n3y6uugkvgw8z03b.us.auth0.com",
+    "AUTH0_CLIENT_ID": "q0hoSToUM38N1NNmseRvsJWbpgVfZoXt",
+    "AUTH0_CALLBACK_URL": "https://vss-app.royaltiii.workers.dev/auth/callback",
+    "AUTH0_LOGOUT_RETURN_URL": "https://vss-app.royaltiii.workers.dev/login"
+  }
 }

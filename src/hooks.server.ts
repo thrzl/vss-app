@@ -21,11 +21,11 @@ const handleParaglide: Handle = ({ event, resolve }) =>
 
 const handleAuth: Handle = async ({ event, resolve }) => {
   const d1 = event.platform?.env?.DATABASE;
-  const jwtSecret = event.platform?.env?.JWT_SECRET;
+  const sessionSecret = event.platform?.env?.AUTH_SESSION_SECRET;
 
-  if (d1 && jwtSecret) {
+  if (d1 && sessionSecret) {
     const result = await validateSession(event.cookies, d1, {
-      JWT_SECRET: jwtSecret,
+      AUTH_SESSION_SECRET: sessionSecret,
     });
     event.locals.user = result?.user ?? null;
   } else {
@@ -81,8 +81,8 @@ const handleCanvasSync: Handle = async ({ event, resolve }) => {
           .then((result) => {
             console.log(
               `[canvas-sync] Synced for ${user.email}: ` +
-                `created=${result.created} updated=${result.updated} ` +
-                `completed=${result.completed} errors=${result.errors.length}`,
+              `created=${result.created} updated=${result.updated} ` +
+              `completed=${result.completed} errors=${result.errors.length}`,
             );
           })
           .catch((err) => {

@@ -3,14 +3,6 @@ import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { getDb } from "$lib/db";
 import { users, canvasIntegrations } from "$lib/schema";
-import {
-  generateTotpSecret,
-  getTotpKeyUri,
-  verifyTotpCode,
-  createSessionToken,
-  setSessionCookie,
-  invalidateAllSessions,
-} from "$lib/server/auth";
 import { verifyToken } from "$lib/server/canvas-api";
 import { getCanvasIntegration, syncCanvasTasks } from "$lib/server/canvas-sync";
 
@@ -26,17 +18,17 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
     user: locals.user,
     canvas: integration
       ? {
-          connected: true,
-          canvasUrl: integration.canvasUrl,
-          lastSyncAt: integration.lastSyncAt,
-          createdAt: integration.createdAt,
-        }
+        connected: true,
+        canvasUrl: integration.canvasUrl,
+        lastSyncAt: integration.lastSyncAt,
+        createdAt: integration.createdAt,
+      }
       : {
-          connected: false,
-          canvasUrl: null,
-          lastSyncAt: null,
-          createdAt: null,
-        },
+        connected: false,
+        canvasUrl: null,
+        lastSyncAt: null,
+        createdAt: null,
+      },
   };
 };
 
@@ -73,99 +65,6 @@ export const actions: Actions = {
     }
 
     return { action: "update_name" as const, success: true };
-  },
-
-  /**
-   * Step 1 of TOTP rotation — generate a new secret and return the QR URI.
-   * The new secret is NOT saved to DB yet; the user must confirm with a valid code first.
-   */
-  rotate_totp_start: async ({ locals }) => {
-    if (!locals.user) return fail(401, { message: "Unauthorized." });
-
-    const newSecret = generateTotpSecret();
-    const uri = getTotpKeyUri(locals.user.email, newSecret);
-
-    return {
-      action: "rotate_totp" as const,
-      step: "confirm" as const,
-      totpUri: uri,
-      totpSecret: newSecret,
-    };
-  },
-
-  /**
-   * Step 2 of TOTP rotation — user confirms the new secret by entering a valid code.
-   * If valid, save the new secret to DB and invalidate existing sessions (re-issue a new one).
-   */
-  rotate_totp_confirm: async ({ request, locals, cookies, platform }) => {
-    if (!locals.user) return fail(401, { message: "Unauthorized." });
-
-    const formData = await request.formData();
-    const code = (formData.get("code") as string)?.trim();
-    const newSecret = (formData.get("totp_secret") as string)?.trim();
-
-    if (!code || !newSecret) {
-      const uri = getTotpKeyUri(locals.user.email, newSecret || "");
-      return fail(400, {
-        action: "rotate_totp" as const,
-        step: "confirm" as const,
-        totpUri: uri,
-        totpSecret: newSecret || "",
-        message: "Verification code is required.",
-      });
-    }
-
-    if (!verifyTotpCode(newSecret, code)) {
-      const uri = getTotpKeyUri(locals.user.email, newSecret);
-      return fail(400, {
-        action: "rotate_totp" as const,
-        step: "confirm" as const,
-        totpUri: uri,
-        totpSecret: newSecret,
-        message: "Invalid or expired code. Please try again.",
-      });
-    }
-
-    const d1 = platform!.env.DATABASE;
-    const env = platform!.env;
-    const db = getDb(d1);
-
-    try {
-      // Save the new TOTP secret
-      await db
-        .update(users)
-        .set({ totpSecret: newSecret })
-        .where(eq(users.id, locals.user.id));
-
-      // Invalidate all existing sessions
-      await invalidateAllSessions(locals.user.id, d1);
-
-      // Re-fetch the updated user to get the new tokenVersion
-      const [updatedUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, locals.user.id))
-        .limit(1);
-
-      if (updatedUser) {
-        // Issue a fresh session token so the current session stays valid
-        const token = await createSessionToken(updatedUser, {
-          JWT_SECRET: env.JWT_SECRET,
-        });
-        setSessionCookie(cookies, token);
-      }
-    } catch {
-      return fail(500, {
-        action: "rotate_totp" as const,
-        message: "Failed to update authenticator secret.",
-      });
-    }
-
-    return {
-      action: "rotate_totp" as const,
-      step: "done" as const,
-      success: true,
-    };
   },
 
   // -------------------------------------------------------------------------

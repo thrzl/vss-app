@@ -1,47 +1,37 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-
   "hello_world": "welcome back, {name}!",
-
   "nav_home": "home",
   "nav_workshops": "workshops",
   "nav_settings": "settings",
   "nav_tasks": "tasks",
-
   "language": "language",
   "mode_switcher": "theme",
   "menu": "Menu",
   "sign_out": "sign out",
-
   "theme_light": "light",
   "theme_dark": "dark",
   "theme_system": "system",
-
   "good_morning": "good morning",
   "good_afternoon": "good afternoon",
   "good_evening": "good evening",
   "fallback_name": "there",
-
   "new_task": "new task",
   "create_task": "create task",
   "tasks_page_title": "Tasks",
   "remaining_completed": "{remaining} remaining · {completed} completed",
-
   "stat_active_tasks": "active tasks",
   "stat_due_today": "due today",
   "stat_overdue": "overdue",
   "stat_completed": "completed",
-
   "overdue_heading": "overdue",
   "task_count_one": "{count} task",
   "task_count_other": "{count} tasks",
   "was_due": "was due {date}",
-
   "due_today_heading": "due today",
   "due_today_label": "due today",
   "nothing_due_today": "nothing due today",
   "all_caught_up_today": "you're all caught up for today 🎉",
-
   "upcoming_heading": "upcoming",
   "view_all": "view all",
   "no_tasks_yet": "no tasks yet",
@@ -49,11 +39,9 @@
   "nothing_upcoming": "nothing upcoming",
   "no_tasks_beyond_today": "no tasks scheduled beyond today",
   "see_all_tasks": "see all {count} tasks",
-
   "calendar_heading": "calendar",
   "tip_heading": "tip",
   "tip_calendar": "Dots on the calendar mark days with tasks due. Use it to spot busy weeks and plan ahead.",
-
   "create_task_dialog_title": "Create Task",
   "create_task_dialog_description": "Add a new task to your list.",
   "title_label": "Title",
@@ -63,16 +51,13 @@
   "pick_a_date": "Pick a date",
   "cancel": "Cancel",
   "save": "Save",
-
   "new_task_dialog_title": "New Task",
   "new_task_dialog_description": "Add a task to your list.",
   "create_task_submit": "Create Task",
-
   "edit_task_dialog_title": "Edit Task",
   "edit_task_dialog_description": "Update the task details.",
   "task_title_placeholder": "Task title",
   "save_changes": "Save Changes",
-
   "tab_active": "Active",
   "tab_completed": "Completed",
   "tab_all": "All",
@@ -84,7 +69,6 @@
   "create_first_task_description": "Create your first task to get started.",
   "overdue_prefix": "Overdue · ",
   "completed_on": "Completed {date}",
-
   "login_welcome": "welcome to fojo",
   "login_welcome_description": "enter your email to sign in or create an account",
   "email_label": "email",
@@ -92,7 +76,6 @@
   "checking": "checking…",
   "continue": "continue",
   "must_be_pgcc_email": "must be a pgcc.edu email address",
-
   "login_setup_heading": "set up authenticator",
   "login_setup_description": "Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code to confirm.",
   "totp_qr_alt": "TOTP QR Code",
@@ -101,21 +84,16 @@
   "verifying": "verifying…",
   "confirm_sign_in": "confirm & sign in",
   "start_over": "start over",
-
   "login_totp_heading": "enter your code",
   "login_totp_description": "Open your authenticator app and enter the 6-digit code for {email}.",
   "sign_in": "sign in",
   "use_different_email": "use a different email",
-
   "terms_agreement": "by continuing, you agree to our",
   "terms_of_service": "terms of service",
   "terms_and": "and",
   "privacy_policy": "privacy policy",
-
   "footer_copyright": "© {year} Prince George's Community College - Vocational Support Services",
-
   "due_assignments": "you have {count} assignments due this week",
-
   "home_badge": "Prince George's Community College",
   "home_hero_title_top": "your academic",
   "home_hero_title_highlight": "support hub",
@@ -123,16 +101,13 @@
   "home_go_to_dashboard": "Go to dashboard",
   "home_get_started": "Get started",
   "home_learn_more": "Learn more",
-
   "home_pill_task_tracking": "Task tracking",
   "home_pill_due_date_reminders": "Due-date reminders",
   "home_pill_workshop_access": "Workshop access",
   "home_pill_secure_sign_in": "Secure sign-in",
-
   "home_features_eyebrow": "What fojo does",
   "home_features_title": "Everything you need, nothing you don't",
   "home_features_subtitle": "Built specifically for VSS students at PGCC — simple, focused, and always available.",
-
   "home_feature_task_management_title": "Task management",
   "home_feature_task_management_body": "Create tasks, set due dates, and mark them complete. Overdue items surface automatically so nothing slips through.",
   "home_feature_calendar_title": "Calendar view",
@@ -140,36 +115,31 @@
   "home_feature_workshops_title": "Workshops",
   "home_feature_workshops_body": "Browse and register for VSS workshops directly through fojo — no need to hunt through emails or flyers.",
   "home_feature_secure_title": "Secure & private",
-  "home_feature_secure_body": "Sign in with your PGCC email and an authenticator app. Your data stays yours — no ads, no tracking.",
+  "home_feature_secure_body": "Sign in with your PGCC email using secure magic links. Your data stays yours — no ads, no tracking.",
   "home_feature_pgcc_title": "Built for PGCC",
   "home_feature_pgcc_body": "Designed hand-in-hand with Vocational Support Services staff to match how students and counselors actually work.",
   "home_feature_improving_title": "Always improving",
   "home_feature_improving_body": "fojo is actively developed. New features — like assignment sync and advisor messaging — are on the way.",
-
   "home_how_eyebrow": "Simple by design",
   "home_how_title": "Up and running in minutes",
   "home_how_step1_title": "Sign in with your PGCC email",
-  "home_how_step1_body": "Use your @pgcc.edu address. No password required — just a quick one-time authenticator setup.",
+  "home_how_step1_body": "Use your @pgcc.edu address. No password required — we send a secure magic link to your inbox.",
   "home_how_step2_title": "Add your tasks & deadlines",
   "home_how_step2_body": "Create tasks from the dashboard, set due dates, and let fojo surface what needs attention today.",
   "home_how_step3_title": "Stay on track",
   "home_how_step3_body": "Check your dashboard each morning. Overdue items, today's tasks, and upcoming work are all front and center.",
-
   "home_cta_title": "Ready to get organized?",
   "home_cta_body": "Join your fellow VSS students on fojo and take control of your academic workload today.",
   "home_cta_dashboard": "Open dashboard",
   "home_cta_sign_in": "Sign in with PGCC email",
-
   "workshops_page_title": "Workshops",
   "workshops_page_meta": "Browse and register for upcoming VSS workshops at PGCC.",
   "workshops_subtitle": "Vocational Support Services",
-
   "workshop_filter_all": "All",
   "workshop_category_career": "Career",
   "workshop_category_academic": "Academic",
   "workshop_category_life_skills": "Life Skills",
   "workshop_category_technology": "Technology",
-
   "workshop_resume_title": "Resume Writing 101",
   "workshop_resume_description": "Learn how to build a professional resume from scratch. We'll cover formatting, action verbs, and tailoring your resume for specific jobs.",
   "workshop_interview_title": "Interview Skills & Confidence",
@@ -182,34 +152,27 @@
   "workshop_advocacy_description": "Learn how to communicate your needs to instructors, request accommodations, and navigate campus resources effectively.",
   "workshop_computer_title": "Computer Skills for College",
   "workshop_computer_description": "Get comfortable with email, word processing, spreadsheets, and the online tools you'll use throughout your courses.",
-
   "workshop_spots_left": "{spots} of {total} spots left",
   "workshop_register": "Register",
-
   "workshop_info_title": "Can't find what you're looking for?",
   "workshop_info_body": "New workshops are added throughout the semester. Contact your VSS counselor or email vss@pgcc.edu to suggest a topic.",
-
   "settings_page_title": "Settings",
   "settings_subtitle": "Manage your profile and security preferences.",
-
   "settings_profile_heading": "Profile",
   "settings_email_label": "Email",
   "settings_email_hint": "Your email is tied to your PGCC account and cannot be changed here.",
   "settings_name_label": "Display name",
   "settings_name_placeholder": "Your name",
   "settings_name_updated": "Name updated successfully.",
-
   "settings_security_heading": "Security",
-  "settings_totp_title": "Authenticator app",
-  "settings_totp_description": "Rotate your authenticator secret if you've lost access to your device or want to switch to a new one.",
-  "settings_totp_rotate": "Rotate secret",
-
+  "settings_totp_title": "Email magic link",
+  "settings_totp_description": "Sign-in security is managed through your PGCC email magic links in Auth0.",
+  "settings_totp_rotate": "Managed by Auth0",
   "settings_totp_dialog_title": "Set up new authenticator",
   "settings_totp_dialog_description": "Scan this QR code with your authenticator app, then enter the 6-digit code to confirm the change.",
   "settings_totp_confirm_button": "Confirm & save",
   "settings_totp_success_title": "Authenticator updated!",
   "settings_totp_success_body": "Your new authenticator secret is now active. All other sessions have been signed out.",
-
   "settings_canvas_heading": "Canvas LMS",
   "settings_canvas_description": "Connect your Canvas account to automatically sync assignments as tasks.",
   "settings_canvas_connected": "Connected",
@@ -231,10 +194,8 @@
   "settings_canvas_sync_success": "Sync complete — {created} created, {updated} updated, {completed} completed.",
   "settings_canvas_syncing": "Syncing…",
   "settings_canvas_connecting": "Connecting…",
-
   "task_source_canvas": "From Canvas",
   "task_source_manual": "Manual",
-
   "description_label": "Description",
   "description_placeholder": "Add notes or details…",
   "no_description": "No description.",

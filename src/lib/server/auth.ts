@@ -1,201 +1,456 @@
+import {
+  generateAuthenticationOptions,
+  generateRegistrationOptions,
+  verifyAuthenticationResponse,
+  verifyRegistrationResponse,
+  type AuthenticationResponseJSON,
+  type AuthenticatorTransportFuture,
+  type PublicKeyCredentialCreationOptionsJSON,
+  type PublicKeyCredentialRequestOptionsJSON,
+  type RegistrationResponseJSON,
+} from "@simplewebauthn/server";
 import { SignJWT, jwtVerify } from "jose";
-import {
-  generateTOTP,
-  verifyTOTP,
-  createTOTPKeyURI,
-} from "@oslojs/otp";
-import {
-  encodeBase32LowerCaseNoPadding,
-  decodeBase32IgnorePadding,
-} from "@oslojs/encoding";
-import { eq } from "drizzle-orm";
-import { getDb } from "$lib/db";
-import { users, type User } from "$lib/schema";
+import { and, eq, sql } from "drizzle-orm";
 import type { Cookies } from "@sveltejs/kit";
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+import { getDb } from "$lib/db";
+import { passkeyCredentials, users, type User } from "$lib/schema";
 
 const SESSION_COOKIE = "session";
-const TOTP_PERIOD = 30; // seconds
-const TOTP_DIGITS = 6;
-const JWT_EXPIRY = "7d";
-const JWT_ISSUER = "fojo";
-const JWT_AUDIENCE = "fojo";
+const AUTH_FLOW_COOKIE = "auth_flow";
+const AUTH_FLOW_TTL_SECONDS = 60 * 10;
+const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
-// ---------------------------------------------------------------------------
-// JWT secret — derived from an env var, encoded once per isolate lifetime
-// ---------------------------------------------------------------------------
-
-let _secret: Uint8Array | null = null;
-
-function getJwtSecret(env: { JWT_SECRET: string }): Uint8Array {
-  if (_secret) return _secret;
-  _secret = new TextEncoder().encode(env.JWT_SECRET);
-  return _secret;
+export interface AuthEnv {
+  AUTH_SESSION_SECRET: string;
+  PASSKEY_RP_ID?: string;
+  PASSKEY_RP_NAME?: string;
+  PASSKEY_ORIGIN?: string;
 }
 
-// ---------------------------------------------------------------------------
-// JWT payload type
-// ---------------------------------------------------------------------------
-
-export interface JwtPayload {
-  sub: string; // user id
+interface AuthFlowState {
+  challenge: string;
+  type: "register" | "login";
+  userId: string;
   email: string;
-  ver: number; // token version — must match user.tokenVersion
 }
 
-// ---------------------------------------------------------------------------
-// JWT — create & verify
-// ---------------------------------------------------------------------------
-
-export async function createSessionToken(
-  user: User,
-  env: { JWT_SECRET: string },
-): Promise<string> {
-  const secret = getJwtSecret(env);
-  return new SignJWT({
-    sub: user.id,
-    email: user.email,
-    ver: user.tokenVersion,
-  } satisfies JwtPayload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setIssuer(JWT_ISSUER)
-    .setAudience(JWT_AUDIENCE)
-    .setExpirationTime(JWT_EXPIRY)
-    .sign(secret);
+interface SessionClaims {
+  sub: string;
+  tv: number;
 }
 
-export async function verifySessionToken(
-  token: string,
-  env: { JWT_SECRET: string },
-): Promise<JwtPayload | null> {
+export interface PasskeyOptionsResult {
+  mode: "register" | "login";
+  options: PublicKeyCredentialCreationOptionsJSON | PublicKeyCredentialRequestOptionsJSON;
+}
+
+function getSessionSecret(env: AuthEnv): Uint8Array {
+  const secret = env.AUTH_SESSION_SECRET?.trim();
+  if (!secret) {
+    throw new Error("Missing AUTH_SESSION_SECRET");
+  }
+
+  return new TextEncoder().encode(secret);
+}
+
+function parseAuthFlowCookie(cookies: Cookies): AuthFlowState | null {
+  const raw = cookies.get(AUTH_FLOW_COOKIE);
+  if (!raw) return null;
+
   try {
-    const { payload } = await jwtVerify(token, getJwtSecret(env), {
-      issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE,
-    });
-    // Ensure the expected claims are present
+    const parsed = JSON.parse(raw) as Partial<AuthFlowState>;
+
     if (
-      typeof payload.sub !== "string" ||
-      typeof payload.email !== "string" ||
-      typeof payload.ver !== "number"
+      typeof parsed.challenge !== "string" ||
+      (parsed.type !== "register" && parsed.type !== "login") ||
+      typeof parsed.userId !== "string" ||
+      typeof parsed.email !== "string"
     ) {
       return null;
     }
-    return payload as unknown as JwtPayload;
+
+    return {
+      challenge: parsed.challenge,
+      type: parsed.type,
+      userId: parsed.userId,
+      email: parsed.email,
+    };
   } catch {
     return null;
   }
 }
 
-// ---------------------------------------------------------------------------
-// Cookie helpers
-// ---------------------------------------------------------------------------
+function setAuthFlowState(cookies: Cookies, flow: AuthFlowState): void {
+  cookies.set(AUTH_FLOW_COOKIE, JSON.stringify(flow), {
+    path: "/",
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    maxAge: AUTH_FLOW_TTL_SECONDS,
+  });
+}
 
-export function setSessionCookie(cookies: Cookies, token: string): void {
+export function clearAuthFlowState(cookies: Cookies): void {
+  cookies.delete(AUTH_FLOW_COOKIE, { path: "/" });
+}
+
+function normalizeInstitutionEmail(emailInput: string): string {
+  const normalized = emailInput.trim().toLowerCase();
+  if (!isAllowedInstitutionEmail(normalized)) {
+    throw new Error("Please use your institutional email address.");
+  }
+  return normalized;
+}
+
+function getRpId(env: AuthEnv, requestUrl: URL): string {
+  return env.PASSKEY_RP_ID?.trim() || requestUrl.hostname;
+}
+
+function getRpName(env: AuthEnv): string {
+  return env.PASSKEY_RP_NAME?.trim() || "VSS App";
+}
+
+function getExpectedOrigin(env: AuthEnv, requestUrl: URL): string {
+  return env.PASSKEY_ORIGIN?.trim() || requestUrl.origin;
+}
+
+function bytesToBase64url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const value of bytes) {
+    binary += String.fromCharCode(value);
+  }
+
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function base64urlToBytes(value: string): Uint8Array {
+  const base64 = value
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(value.length / 4) * 4, "=");
+
+  const binary = atob(base64);
+  const buffer = new ArrayBuffer(binary.length);
+  const bytes = new Uint8Array(buffer);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return bytes;
+}
+
+function parseTransports(
+  transportsJson: string | null,
+): AuthenticatorTransportFuture[] | undefined {
+  if (!transportsJson) return undefined;
+
+  try {
+    const parsed = JSON.parse(transportsJson);
+    if (!Array.isArray(parsed)) return undefined;
+    return parsed.filter((value): value is AuthenticatorTransportFuture => typeof value === "string");
+  } catch {
+    return undefined;
+  }
+}
+
+async function signSessionToken(env: AuthEnv, claims: SessionClaims): Promise<string> {
+  return await new SignJWT({ tv: claims.tv })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(claims.sub)
+    .setIssuedAt()
+    .setExpirationTime(`${SESSION_TTL_SECONDS}s`)
+    .sign(getSessionSecret(env));
+}
+
+async function verifySessionToken(
+  env: AuthEnv,
+  token: string,
+): Promise<SessionClaims | null> {
+  try {
+    const { payload } = await jwtVerify(token, getSessionSecret(env), {
+      algorithms: ["HS256"],
+    });
+
+    if (typeof payload.sub !== "string" || typeof payload.tv !== "number") {
+      return null;
+    }
+
+    return {
+      sub: payload.sub,
+      tv: payload.tv,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function isAllowedInstitutionEmail(email: string): boolean {
+  const normalized = email.trim().toLowerCase();
+  return normalized.endsWith("@pgcc.edu") || normalized.endsWith("@students.pgcc.edu");
+}
+
+export async function createPasskeyOptions(
+  cookies: Cookies,
+  d1: D1Database,
+  env: AuthEnv,
+  requestUrl: URL,
+  emailInput: string,
+): Promise<PasskeyOptionsResult> {
+  const email = normalizeInstitutionEmail(emailInput);
+  const db = getDb(d1);
+
+  const [existingUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const existingCredentials = existingUser
+    ? await db
+        .select()
+        .from(passkeyCredentials)
+        .where(eq(passkeyCredentials.userId, existingUser.id))
+    : [];
+
+  if (existingUser && existingCredentials.length > 0) {
+    const options = await generateAuthenticationOptions({
+      rpID: getRpId(env, requestUrl),
+      userVerification: "preferred",
+      allowCredentials: existingCredentials.map((credential) => ({
+        id: credential.credentialId,
+        transports: parseTransports(credential.transports) ?? [],
+      })),
+    });
+
+    setAuthFlowState(cookies, {
+      challenge: options.challenge,
+      type: "login",
+      userId: existingUser.id,
+      email,
+    });
+
+    return {
+      mode: "login",
+      options,
+    };
+  }
+
+  const pendingUserId = existingUser?.id ?? crypto.randomUUID();
+  const options = await generateRegistrationOptions({
+    rpID: getRpId(env, requestUrl),
+    rpName: getRpName(env),
+    userName: email,
+    userDisplayName: email.split("@")[0],
+    userID: new TextEncoder().encode(pendingUserId),
+    attestationType: "none",
+    authenticatorSelection: {
+      residentKey: "preferred",
+      userVerification: "preferred",
+    },
+    excludeCredentials: existingCredentials.map((credential) => ({
+      id: credential.credentialId,
+      transports: parseTransports(credential.transports) ?? [],
+    })),
+  });
+
+  setAuthFlowState(cookies, {
+    challenge: options.challenge,
+    type: "register",
+    userId: pendingUserId,
+    email,
+  });
+
+  return {
+    mode: "register",
+    options,
+  };
+}
+
+async function issueSessionForUser(cookies: Cookies, env: AuthEnv, user: User): Promise<void> {
+  const token = await signSessionToken(env, {
+    sub: user.id,
+    tv: user.tokenVersion,
+  });
+
   cookies.set(SESSION_COOKIE, token, {
     path: "/",
     httpOnly: true,
     secure: true,
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days — matches JWT expiry
+    maxAge: SESSION_TTL_SECONDS,
   });
+}
+
+export async function verifyPasskey(
+  cookies: Cookies,
+  d1: D1Database,
+  env: AuthEnv,
+  requestUrl: URL,
+  mode: "register" | "login",
+  response: RegistrationResponseJSON | AuthenticationResponseJSON,
+): Promise<User | null> {
+  const flow = parseAuthFlowCookie(cookies);
+  clearAuthFlowState(cookies);
+
+  if (!flow || flow.type !== mode) {
+    return null;
+  }
+
+  const db = getDb(d1);
+
+  if (mode === "register") {
+    const verification = await verifyRegistrationResponse({
+      response: response as RegistrationResponseJSON,
+      expectedChallenge: flow.challenge,
+      expectedOrigin: getExpectedOrigin(env, requestUrl),
+      expectedRPID: getRpId(env, requestUrl),
+      requireUserVerification: true,
+    });
+
+    if (!verification.verified || !verification.registrationInfo) {
+      return null;
+    }
+
+    const credentialId = verification.registrationInfo.credential.id;
+    const publicKey = bytesToBase64url(verification.registrationInfo.credential.publicKey);
+    const counter = verification.registrationInfo.credential.counter;
+    const transports = JSON.stringify(
+      Array.isArray((response as RegistrationResponseJSON).response.transports)
+        ? (response as RegistrationResponseJSON).response.transports
+        : [],
+    );
+
+    const [credentialOwner] = await db
+      .select()
+      .from(passkeyCredentials)
+      .where(eq(passkeyCredentials.credentialId, credentialId))
+      .limit(1);
+
+    if (credentialOwner) {
+      return null;
+    }
+
+    const [existingUser] = await db.select().from(users).where(eq(users.email, flow.email)).limit(1);
+
+    let user = existingUser;
+    if (!user) {
+      const id = flow.userId;
+      const name = flow.email.split("@")[0];
+
+      await db.insert(users).values({
+        id,
+        email: flow.email,
+        name,
+      });
+
+      const [createdUser] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+      if (!createdUser) {
+        return null;
+      }
+      user = createdUser;
+    }
+
+    await db.insert(passkeyCredentials).values({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      credentialId,
+      publicKey,
+      counter,
+      transports,
+      backedUp: verification.registrationInfo.credentialBackedUp,
+    });
+
+    await issueSessionForUser(cookies, env, user);
+    return user;
+  }
+
+  const [credential] = await db
+    .select()
+    .from(passkeyCredentials)
+    .where(
+      and(
+        eq(passkeyCredentials.userId, flow.userId),
+        eq(
+          passkeyCredentials.credentialId,
+          (response as AuthenticationResponseJSON).id,
+        ),
+      ),
+    )
+    .limit(1);
+
+  if (!credential) {
+    return null;
+  }
+
+  const verification = await verifyAuthenticationResponse({
+    response: response as AuthenticationResponseJSON,
+    expectedChallenge: flow.challenge,
+    expectedOrigin: getExpectedOrigin(env, requestUrl),
+    expectedRPID: getRpId(env, requestUrl),
+    credential: {
+      id: credential.credentialId,
+      publicKey: base64urlToBytes(credential.publicKey) as Uint8Array<ArrayBuffer>,
+      counter: credential.counter,
+      transports: parseTransports(credential.transports),
+    },
+    requireUserVerification: true,
+  });
+
+  if (!verification.verified) {
+    return null;
+  }
+
+  await db
+    .update(passkeyCredentials)
+    .set({
+      counter: verification.authenticationInfo.newCounter,
+      backedUp: verification.authenticationInfo.credentialBackedUp,
+    })
+    .where(eq(passkeyCredentials.id, credential.id));
+
+  const [user] = await db.select().from(users).where(eq(users.id, flow.userId)).limit(1);
+  if (!user) {
+    return null;
+  }
+
+  await issueSessionForUser(cookies, env, user);
+  return user;
 }
 
 export function deleteSessionCookie(cookies: Cookies): void {
   cookies.delete(SESSION_COOKIE, { path: "/" });
 }
 
+export async function revokeUserSessions(
+  d1: D1Database,
+  userId: string,
+): Promise<void> {
+  const db = getDb(d1);
+  await db
+    .update(users)
+    .set({
+      tokenVersion: sql`${users.tokenVersion} + 1`,
+    })
+    .where(eq(users.id, userId));
+}
+
 export function getSessionCookie(cookies: Cookies): string | undefined {
   return cookies.get(SESSION_COOKIE);
 }
 
-// ---------------------------------------------------------------------------
-// Validate session — verify JWT then check token version against DB
-// ---------------------------------------------------------------------------
-
 export async function validateSession(
   cookies: Cookies,
   d1: D1Database,
-  env: { JWT_SECRET: string },
-): Promise<{ user: User; payload: JwtPayload } | null> {
+  env: AuthEnv,
+): Promise<{ user: User } | null> {
   const token = getSessionCookie(cookies);
   if (!token) return null;
 
-  const payload = await verifySessionToken(token, env);
-  if (!payload) return null;
+  const claims = await verifySessionToken(env, token);
+  if (!claims) return null;
 
   const db = getDb(d1);
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, payload.sub))
-    .limit(1);
+  const [user] = await db.select().from(users).where(eq(users.id, claims.sub)).limit(1);
 
-  if (!user) return null;
+  if (!user || user.tokenVersion !== claims.tv) {
+    return null;
+  }
 
-  // If the token version doesn't match, the session has been invalidated
-  if (user.tokenVersion !== payload.ver) return null;
-
-  return { user, payload };
-}
-
-// ---------------------------------------------------------------------------
-// Invalidate all sessions (increment token version)
-// ---------------------------------------------------------------------------
-
-export async function invalidateAllSessions(
-  userId: string,
-  d1: D1Database,
-): Promise<void> {
-  const db = getDb(d1);
-  const [user] = await db
-    .select({ tokenVersion: users.tokenVersion })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-  if (!user) return;
-
-  await db
-    .update(users)
-    .set({ tokenVersion: user.tokenVersion + 1 })
-    .where(eq(users.id, userId));
-}
-
-// ---------------------------------------------------------------------------
-// TOTP helpers
-// ---------------------------------------------------------------------------
-
-/** Generate a random 20-byte TOTP secret and return it as a base32 string. */
-export function generateTotpSecret(): string {
-  const bytes = new Uint8Array(20);
-  crypto.getRandomValues(bytes);
-  return encodeBase32LowerCaseNoPadding(bytes);
-}
-
-/** Decode a base32-encoded TOTP secret back to bytes. */
-function decodeTotpSecret(secret: string): Uint8Array {
-  return decodeBase32IgnorePadding(secret);
-}
-
-/** Generate the otpauth:// URI for QR code rendering. */
-export function getTotpKeyUri(
-  email: string,
-  secret: string,
-): string {
-  return createTOTPKeyURI(JWT_ISSUER, email, decodeTotpSecret(secret), TOTP_PERIOD, TOTP_DIGITS);
-}
-
-/** Verify a TOTP code against a stored secret. */
-export function verifyTotpCode(secret: string, code: string): boolean {
-  return verifyTOTP(decodeTotpSecret(secret), TOTP_PERIOD, TOTP_DIGITS, code);
-}
-
-/** Generate the current TOTP code (used only for testing / debugging). */
-export function generateTotpCode(secret: string): string {
-  return generateTOTP(decodeTotpSecret(secret), TOTP_PERIOD, TOTP_DIGITS);
+  return { user };
 }
