@@ -48,21 +48,31 @@
                 message?: string;
             };
 
-            if (!optionsResponse.ok || !optionsPayload.mode || !optionsPayload.options) {
-                authError = optionsPayload.message ?? "Unable to start passkey sign-in.";
+            if (
+                !optionsResponse.ok ||
+                !optionsPayload.mode ||
+                !optionsPayload.options
+            ) {
+                authError = m.login_passkey_start_failed();
                 return;
             }
 
-            const { startAuthentication, startRegistration } = await import("@simplewebauthn/browser");
+            const { startAuthentication, startRegistration } = await import(
+                "@simplewebauthn/browser"
+            );
 
-            let credential: RegistrationResponseJSON | AuthenticationResponseJSON;
+            let credential:
+                | RegistrationResponseJSON
+                | AuthenticationResponseJSON;
             if (optionsPayload.mode === "register") {
                 credential = await startRegistration({
-                    optionsJSON: optionsPayload.options as PublicKeyCredentialCreationOptionsJSON,
+                    optionsJSON:
+                        optionsPayload.options as PublicKeyCredentialCreationOptionsJSON,
                 });
             } else {
                 credential = await startAuthentication({
-                    optionsJSON: optionsPayload.options as PublicKeyCredentialRequestOptionsJSON,
+                    optionsJSON:
+                        optionsPayload.options as PublicKeyCredentialRequestOptionsJSON,
                 });
             }
 
@@ -76,13 +86,13 @@
             });
 
             if (!verifyResponse.ok) {
-                authError = "Passkey verification failed. Please try again.";
+                authError = m.login_passkey_verify_failed();
                 return;
             }
 
             window.location.assign("/dashboard");
         } catch {
-            authError = "Passkey sign-in was cancelled or failed. Please try again.";
+            authError = m.login_passkey_cancelled_or_failed();
         } finally {
             loading = false;
         }
@@ -108,7 +118,7 @@
                                 {m.login_welcome()}
                             </h1>
                             <p class="text-muted-foreground text-balance">
-                                Use your passkey with your institutional email.
+                                {m.login_passkey_intro()}
                             </p>
                         </div>
 
@@ -119,7 +129,9 @@
                         {/if}
 
                         <Field>
-                            <FieldLabel for="email">{m.email_label()}</FieldLabel>
+                            <FieldLabel for="email"
+                                >{m.email_label()}</FieldLabel
+                            >
                             <Input
                                 id="email"
                                 type="email"
@@ -140,7 +152,7 @@
                                     <LoaderCircleIcon class="animate-spin" />
                                     {m.checking()}
                                 {:else}
-                                    Continue with Passkey
+                                    {m.login_passkey_continue()}
                                 {/if}
                             </Button>
                         </Field>

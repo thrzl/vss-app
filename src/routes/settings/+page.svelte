@@ -21,6 +21,10 @@
         CheckIcon,
         AlertCircleIcon,
     } from "@lucide/svelte";
+    import type {
+        PublicKeyCredentialCreationOptionsJSON,
+        RegistrationResponseJSON,
+    } from "@simplewebauthn/server";
 
     let { data } = $props();
     const user = $derived(data.user);
@@ -47,7 +51,7 @@
     });
 
     // Canvas integration
-    let canvasUrl = $state("");
+    let canvasUrl = $state("https://pgcconline.instructure.com");
     let canvasToken = $state("");
     let canvasConnecting = $state(false);
     let canvasSyncing = $state(false);
@@ -73,6 +77,10 @@
             ? form.message
             : null,
     );
+
+    let passkeyAdding = $state(false);
+    let passkeyAddSuccess = $state(false);
+    let passkeyAddError = $state<string | null>(null);
 
     // Reset loading states when form response arrives
     $effect(() => {
@@ -104,6 +112,60 @@
         if (diffHours < 24) return `${diffHours}h ago`;
         const diffDays = Math.floor(diffHours / 24);
         return `${diffDays}d ago`;
+    }
+
+    async function addPasskey(): Promise<void> {
+        passkeyAdding = true;
+        passkeyAddSuccess = false;
+        passkeyAddError = null;
+
+        try {
+            const optionsResponse = await fetch("/auth/passkey/add/options", {
+                method: "POST",
+            });
+
+            const optionsPayload = (await optionsResponse.json()) as {
+                mode?: "register";
+                options?: PublicKeyCredentialCreationOptionsJSON;
+                message?: string;
+            };
+
+            if (
+                !optionsResponse.ok ||
+                optionsPayload.mode !== "register" ||
+                !optionsPayload.options
+            ) {
+                passkeyAddError = m.settings_passkeys_start_failed();
+                return;
+            }
+
+            const { startRegistration } = await import(
+                "@simplewebauthn/browser"
+            );
+            const credential = await startRegistration({
+                optionsJSON: optionsPayload.options,
+            });
+
+            const verifyResponse = await fetch("/auth/passkey/verify", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                    mode: "register",
+                    response: credential as RegistrationResponseJSON,
+                }),
+            });
+
+            if (!verifyResponse.ok) {
+                passkeyAddError = m.settings_passkeys_verify_failed();
+                return;
+            }
+
+            passkeyAddSuccess = true;
+        } catch {
+            passkeyAddError = m.settings_passkeys_cancelled_or_failed();
+        } finally {
+            passkeyAdding = false;
+        }
     }
 </script>
 
@@ -239,18 +301,44 @@
                 >
                     <div class="space-y-1">
                         <p class="text-sm font-medium">
-                            {m.settings_totp_title()}
+                            {m.settings_passkeys_title()}
                         </p>
                         <p
                             class="text-xs text-muted-foreground leading-relaxed max-w-sm"
                         >
-                            {m.settings_totp_description()}
+                            {m.settings_passkeys_description()}
                         </p>
                     </div>
-                    <p class="text-xs text-muted-foreground sm:max-w-xs">
-                        {m.settings_totp_description()}
-                    </p>
+
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="gap-2"
+                        disabled={passkeyAdding}
+                        onclick={addPasskey}
+                    >
+                        {#if passkeyAdding}
+                            <LoaderCircleIcon class="size-4 animate-spin" />
+                            {m.settings_passkeys_adding()}
+                        {:else}
+                            <KeyRoundIcon class="size-4" />
+                            {m.settings_passkeys_add()}
+                        {/if}
+                    </Button>
                 </div>
+
+                {#if passkeyAddSuccess}
+                    <p
+                        class="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"
+                    >
+                        <CheckCircle2Icon class="size-3" />
+                        {m.settings_passkeys_add_success()}
+                    </p>
+                {/if}
+
+                {#if passkeyAddError}
+                    <p class="text-xs text-destructive">{passkeyAddError}</p>
+                {/if}
             </Card.Content>
         </Card.Root>
     </div>
@@ -410,6 +498,7 @@
                                 id="canvas-url"
                                 name="canvas_url"
                                 bind:value={canvasUrl}
+                                disabled
                                 placeholder={m.settings_canvas_url_placeholder()}
                                 required
                             />

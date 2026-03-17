@@ -1,20 +1,19 @@
 import { json, type RequestHandler } from "@sveltejs/kit";
-import { createPasskeyOptions } from "$lib/server/auth";
+import { createAdditionalPasskeyOptions } from "$lib/server/auth";
 
-export const POST: RequestHandler = async ({ request, cookies, platform, url }) => {
+export const POST: RequestHandler = async ({ cookies, platform, url, locals }) => {
     const env = platform?.env;
 
-    if (!env?.DATABASE) {
+    if (!env?.DATABASE || !env.AUTH_SESSION_SECRET) {
         return json({ error: "auth_not_configured" }, { status: 500 });
     }
 
-    const body = (await request.json()) as { email?: unknown };
-    if (typeof body.email !== "string") {
-        return json({ error: "invalid_email" }, { status: 400 });
+    if (!locals.user) {
+        return json({ error: "unauthorized" }, { status: 401 });
     }
 
     try {
-        const result = await createPasskeyOptions(
+        const result = await createAdditionalPasskeyOptions(
             cookies,
             env.DATABASE,
             {
@@ -24,12 +23,14 @@ export const POST: RequestHandler = async ({ request, cookies, platform, url }) 
                 PASSKEY_ORIGIN: env.PASSKEY_ORIGIN,
             },
             url,
-            body.email,
+            locals.user,
         );
 
         return json(result);
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Unable to start passkey sign-in.";
+        const message = error instanceof Error
+            ? error.message
+            : "Unable to start passkey registration.";
         return json({ error: "passkey_options_failed", message }, { status: 400 });
     }
 };
