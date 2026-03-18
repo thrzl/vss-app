@@ -498,9 +498,9 @@
                                 id="canvas-url"
                                 name="canvas_url"
                                 bind:value={canvasUrl}
-                                disabled
                                 placeholder={m.settings_canvas_url_placeholder()}
                                 required
+                                class="pointer-events-none opacity-50"
                             />
                             <p class="text-xs text-muted-foreground">
                                 {m.settings_canvas_url_hint()}
