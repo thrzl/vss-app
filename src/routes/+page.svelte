@@ -38,7 +38,7 @@
 
 <!-- ── Hero ────────────────────────────────────────────────────── -->
 <section
-    class="relative overflow-hidden -mx-4 -mt-6 px-4 pt-20 pb-24 flex flex-col items-center text-center"
+    class="relative overflow-hidden -mx-4 -mt-6 px-4 pt-20 pb-24 flex flex-col items-center text-center h-[95vh] justify-center"
 >
     <!-- Soft radial glow behind text -->
     <div
