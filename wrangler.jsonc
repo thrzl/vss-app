@@ -22,5 +22,11 @@
     "AUTH0_CLIENT_ID": "q0hoSToUM38N1NNmseRvsJWbpgVfZoXt",
     "AUTH0_CALLBACK_URL": "https://vss-app.royaltiii.workers.dev/auth/callback",
     "AUTH0_LOGOUT_RETURN_URL": "https://vss-app.royaltiii.workers.dev/login"
+  },
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
   }
 }
