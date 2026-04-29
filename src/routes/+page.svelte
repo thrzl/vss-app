@@ -29,10 +29,10 @@
 </script>
 
 <svelte:head>
-    <title>fojo — Vocational Support Services</title>
+    <title>Fojo — Vocational Support Services</title>
     <meta
         name="description"
-        content="fojo helps PGCC students stay on top of their tasks, workshops, and academic journey — all in one place."
+        content="Fojo helps PGCC students stay on top of their tasks, workshops, and academic journey — all in one place."
     />
 </svelte:head>
 
@@ -117,6 +117,28 @@
                 {pill.label}
             </span>
         {/each}
+    </div>
+</section>
+
+<!-- ── About ───────────────────────────────────────────────────── -->
+<section class="relative py-20">
+    <div
+        class="pointer-events-none absolute inset-0 -z-10"
+        style="background: radial-gradient(ellipse 70% 50% at 50% 0%, oklch(0.82 0.1 160 / 0.18) 0%, transparent 65%);"
+    ></div>
+    <div
+        use:inViewFade={{ duration: 0.5, y: 20 }}
+        class="mx-auto max-w-3xl text-center"
+    >
+        <p class="text-xs font-semibold text-primary uppercase tracking-widest">
+            {m.home_about_eyebrow()}
+        </p>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-bold">
+            {m.home_about_title()}
+        </h2>
+        <p class="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
+            {m.home_about_body()}
+        </p>
     </div>
 </section>
 
